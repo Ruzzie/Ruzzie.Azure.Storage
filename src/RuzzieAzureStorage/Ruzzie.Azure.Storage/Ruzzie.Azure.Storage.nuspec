@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <package >
   <metadata>
-    <id>Ruzzie.Mtg.Core</id>
+    <id>Ruzzie.Azure.Storage</id>
     <version>$version$</version>
-    <title>Ruzzie.Mtg.Core</title>
+    <title>Ruzzie.Azure.Storage</title>
     <authors>Dorus Verhoeckx</authors>
     <owners>Dorus Verhoeckx</owners>
     <licenseUrl>https://github.com/Ruzzie/Ruzzie.Azure.Storage/blob/master/LICENSE</licenseUrl>
