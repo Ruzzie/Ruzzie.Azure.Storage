@@ -1,22 +1,22 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
-using NUnit.Framework;
+using Xunit;
+using FluentAssertions;
 
 namespace Ruzzie.Azure.Storage.UnitTests
 {
-    [TestFixture]
     public class BatchHelpersTests
     {
-        private async Task TestBatch(IReadOnlyCollection<string> batch, int batchSize, List<string> allItemsFromBatches)
+        private static async Task TestBatch(IReadOnlyCollection<string> batch, int batchSize, List<string> allItemsFromBatches)
         {
             await Task.Run(() =>
             {
                 allItemsFromBatches.AddRange(batch);
-                Assert.That(batch.Count, Is.LessThanOrEqualTo(batchSize).And.GreaterThan(0));
+                batch.Count.Should().BeGreaterThan(0).And.BeLessOrEqualTo(batchSize);
             });
         }
 
-        [Test]
+        [Fact]
         public void SmokeTest()
         {
             List<string> allItems = new List<string> {"1", "2", "3", "4", "5"};
@@ -25,10 +25,10 @@ namespace Ruzzie.Azure.Storage.UnitTests
 
             allItems.ExecuteInBatchesAsync(batch => TestBatch(batch, batchSize, allItemsFromBatches), s => "mapped" + s, batchSize: batchSize).Wait();
 
-            Assert.That(allItemsFromBatches.Count, Is.EqualTo(allItems.Count));
+            allItemsFromBatches.Count.Should().Be(allItems.Count);
         }
 
-        [Test]
+        [Fact]
         public void AllItemsSmallerThanBatchSize()
         {
             List<string> allItems = new List<string> { "1", "2", "3", "4", "5" };
@@ -37,10 +37,10 @@ namespace Ruzzie.Azure.Storage.UnitTests
 
             allItems.ExecuteInBatchesAsync(batch => TestBatch(batch, batchSize, allItemsFromBatches), s => "mapped" + s, batchSize: batchSize).Wait();
 
-            Assert.That(allItemsFromBatches.Count, Is.EqualTo(allItems.Count));
+            allItemsFromBatches.Count.Should().Be(allItems.Count);
         }
 
-        [Test]
+        [Fact]
         public void MapFunctionIsCalled()
         {
             List<string> allItems = new List<string> { "1", "2", "3", "4", "5" };
@@ -51,11 +51,11 @@ namespace Ruzzie.Azure.Storage.UnitTests
 
             foreach (string mappedString in allItemsFromBatches)
             {
-                Assert.That(mappedString.StartsWith("mapped"), Is.True);
+                mappedString.StartsWith("mapped").Should().BeTrue();
             }
         }
 
-        [Test]
+        [Fact]
         public void BatchSizeOfOneShouldSucceeed()
         {
             List<string> allItems = new List<string> { "1", "2", "3", "4", "5" };
@@ -66,7 +66,7 @@ namespace Ruzzie.Azure.Storage.UnitTests
 
             foreach (string mappedString in allItemsFromBatches)
             {
-                Assert.That(mappedString.StartsWith("mapped"), Is.True);
+                mappedString.StartsWith("mapped").Should().BeTrue();
             }
         }
     }
