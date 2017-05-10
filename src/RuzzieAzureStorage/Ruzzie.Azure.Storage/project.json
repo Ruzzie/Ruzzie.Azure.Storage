@@ -14,7 +14,7 @@
     }
   },
   "dependencies": {
-    "Ruzzie.Common": "1.0.49",
+    "Ruzzie.Common": "2.0.54",
     "WindowsAzure.Storage": "7.2.1"
   },
   "frameworks": {
