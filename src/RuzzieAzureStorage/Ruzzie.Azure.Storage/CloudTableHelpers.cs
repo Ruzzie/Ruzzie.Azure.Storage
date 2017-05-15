@@ -72,6 +72,25 @@ namespace Ruzzie.Azure.Storage
             return resultCount;
         }
 
+        public static int ExecuteDeleteInBatches<TEntity>(List<TEntity> allEntitiesToInsert, CloudTable tableToInsertTo) where TEntity : ITableEntity
+        {
+            int batchSize = 100;
+
+            int numberOfItems = allEntitiesToInsert.Count;
+
+            int numberOfBatches = (int)Math.Ceiling((double)numberOfItems / batchSize);
+            int resultCount = 0;
+            for (int i = 0; i < numberOfBatches; i++)
+            {
+                var batch = allEntitiesToInsert.Skip(i * batchSize).Take(batchSize);
+
+                TableBatchOperation op = new TableBatchOperation();
+                batch.ToList().ForEach(entity => op.Delete(entity));
+                resultCount += tableToInsertTo.ExecuteBatch(op).Count;
+            }
+            return resultCount;
+        }
+
         /// <summary>
         /// Executes the insert or merge in batches asynchronous and will automatically group inserts by partitionkey.
         /// </summary>
