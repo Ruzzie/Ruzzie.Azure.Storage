@@ -72,21 +72,21 @@ namespace Ruzzie.Azure.Storage
             return resultCount;
         }
 
-        public static int ExecuteDeleteInBatches<TEntity>(List<TEntity> allEntitiesToInsert, CloudTable tableToInsertTo) where TEntity : ITableEntity
+        public static int ExecuteDeleteInBatches<TEntity>(List<TEntity> allEntitiesToDelete, CloudTable tableToDeleteFrom) where TEntity : ITableEntity
         {
             int batchSize = 100;
 
-            int numberOfItems = allEntitiesToInsert.Count;
+            int numberOfItems = allEntitiesToDelete.Count;
 
             int numberOfBatches = (int)Math.Ceiling((double)numberOfItems / batchSize);
             int resultCount = 0;
             for (int i = 0; i < numberOfBatches; i++)
             {
-                var batch = allEntitiesToInsert.Skip(i * batchSize).Take(batchSize);
+                var batch = allEntitiesToDelete.Skip(i * batchSize).Take(batchSize);
 
                 TableBatchOperation op = new TableBatchOperation();
                 batch.ToList().ForEach(entity => op.Delete(entity));
-                resultCount += tableToInsertTo.ExecuteBatch(op).Count;
+                resultCount += tableToDeleteFrom.ExecuteBatch(op).Count;
             }
             return resultCount;
         }
