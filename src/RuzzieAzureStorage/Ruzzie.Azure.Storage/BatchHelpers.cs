@@ -6,6 +6,9 @@ using System.Threading.Tasks;
 
 namespace Ruzzie.Azure.Storage
 {
+    /// <summary>
+    /// Helper class for batchoperations.
+    /// </summary>
     public static class BatchHelpers
     {
         /// <summary>
@@ -15,7 +18,7 @@ namespace Ruzzie.Azure.Storage
         /// <typeparam name="TOut">The type of the out.</typeparam>
         /// <param name="allItems">All items.</param>
         /// <param name="executeOnBatch">The function to execute for each batch..</param>
-        /// <param name="mapEachFunc">The map unction to map TIn to TOut.</param>
+        /// <param name="mapEachFunc">The map unction to map TIn to TOut. When TOut is null it will be skipped in the batch.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <param name="batchSize">Size of the batch.</param>
         /// <returns></returns>
@@ -63,9 +66,11 @@ namespace Ruzzie.Azure.Storage
                 }
 
                 var mappedItem = mapEachFunc(currentItem);
-                
 
-                entitiesBatch.Add(mappedItem);
+                if (mappedItem != null)
+                {
+                    entitiesBatch.Add(mappedItem);
+                }
             }
 
             //The last batch
