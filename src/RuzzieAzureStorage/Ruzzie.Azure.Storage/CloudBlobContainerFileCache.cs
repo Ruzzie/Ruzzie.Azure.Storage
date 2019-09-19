@@ -1,7 +1,8 @@
 using System;
 using System.IO;
 using System.Text;
-using Microsoft.WindowsAzure.Storage.Blob;
+using Microsoft.Azure.Storage.Blob;
+
 
 namespace Ruzzie.Azure.Storage
 {
