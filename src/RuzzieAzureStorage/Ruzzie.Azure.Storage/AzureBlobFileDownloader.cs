@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Threading.Tasks;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Blob;
 using Ruzzie.Common.IO;
@@ -7,7 +8,7 @@ using Ruzzie.Common.IO;
 namespace Ruzzie.Azure.Storage
 {
     /// <summary>
-    /// Can download files from remote blob storage. The downlaoder only downloads the file if it is newer or not yet exists.
+    /// Can download files from remote blob storage. The downloader only downloads the file if it is newer or not yet exists.
     /// </summary>
     /// <seealso cref="Ruzzie.Common.IO.IFileDownloader" />
     public class AzureBlobFileDownloader : IFileDownloader
@@ -62,7 +63,22 @@ namespace Ruzzie.Azure.Storage
                 throw new ArgumentException("Value cannot be null or whitespace.", nameof(localPathToStoreFile));
             }
             CloudBlob blobReference = CreateBlobReferenceForFile();
-            blobReference.DownloadToFile(localPathToStoreFile,FileMode.Create);
+            blobReference.DownloadToFileAsync(localPathToStoreFile, FileMode.Create).Wait();
+        }
+
+        /// <summary>
+        /// Downloads the file if newer or if the file does not yet exists.
+        /// </summary>
+        /// <param name="localPathToStoreFile">The local path to store file.</param>
+        /// <exception cref="ArgumentException">Value cannot be null or whitespace.</exception>
+        public async Task DownloadFileAsync(string localPathToStoreFile)
+        {
+            if (string.IsNullOrWhiteSpace(localPathToStoreFile))
+            {
+                throw new ArgumentException("Value cannot be null or whitespace.", nameof(localPathToStoreFile));
+            }
+            CloudBlob blobReference = CreateBlobReferenceForFile();
+            await blobReference.DownloadToFileAsync(localPathToStoreFile, FileMode.Create);
         }
 
         /// <summary>
@@ -76,7 +92,7 @@ namespace Ruzzie.Azure.Storage
             get
             {
                 CloudBlob blobReference = CreateBlobReferenceForFile();
-                blobReference.FetchAttributes();
+                blobReference.FetchAttributesAsync().Wait();
                 return new RemoteFileMetaData {LastModifiedTimeUtc = blobReference.Properties.LastModified?.UtcDateTime};
             }
         }

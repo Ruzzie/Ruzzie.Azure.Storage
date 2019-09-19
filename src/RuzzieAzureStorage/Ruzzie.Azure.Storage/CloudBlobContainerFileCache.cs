@@ -61,16 +61,16 @@ namespace Ruzzie.Azure.Storage
    
             CloudBlobDirectory cloudBlobDirectory = _container.GetDirectoryReference(directoryName);
             CloudBlob blobReference = cloudBlobDirectory.GetBlobReference(cacheKey);
-            if (blobReference.Exists())
+            if (blobReference.ExistsAsync().Result)
             {
                 return DownloadAsText(blobReference);
             }
 
             CloudBlockBlob blockBlobReference = cloudBlobDirectory.GetBlockBlobReference(cacheKey);
-            if (!blockBlobReference.Exists()) //double check
+            if (!blockBlobReference.ExistsAsync().Result) //double check
             {
                 string content = addFactory(cacheKey, directoryName);
-                blockBlobReference.UploadText(content, Encoding.UTF8);
+                blockBlobReference.UploadTextAsync(content);
                 return content;
             }
 
@@ -84,7 +84,7 @@ namespace Ruzzie.Azure.Storage
             try
             {
                 memoryStream = new MemoryStream();
-                blobReference.DownloadToStream(memoryStream);
+                blobReference.DownloadToStreamAsync(memoryStream).Wait();
                 memoryStream.Seek(0, SeekOrigin.Begin);
 
                 reader = new StreamReader(memoryStream, Encoding.UTF8);

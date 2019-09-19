@@ -1,11 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29306.81
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "Ruzzie.Azure.Storage", "Ruzzie.Azure.Storage\Ruzzie.Azure.Storage.xproj", "{BF9F8946-E4E0-40AC-B868-0F7D82552F3E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Ruzzie.Azure.Storage", "Ruzzie.Azure.Storage\Ruzzie.Azure.Storage.csproj", "{9DA26AB0-0AC5-4588-A9F6-9B7D3B2D8537}"
 EndProject
-Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "Ruzzie.Azure.Storage.UnitTests", "Ruzzie.Azure.Storage.UnitTests\Ruzzie.Azure.Storage.UnitTests.xproj", "{BB3AFF91-94E8-4BF3-A003-2FFAB0622F96}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ruzzie.Azure.Storage.UnitTests", "Ruzzie.Azure.Storage.UnitTests\Ruzzie.Azure.Storage.UnitTests.csproj", "{94302900-1DE5-4ED0-97F3-99711D8A9432}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -13,16 +13,19 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{BF9F8946-E4E0-40AC-B868-0F7D82552F3E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{BF9F8946-E4E0-40AC-B868-0F7D82552F3E}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{BF9F8946-E4E0-40AC-B868-0F7D82552F3E}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{BF9F8946-E4E0-40AC-B868-0F7D82552F3E}.Release|Any CPU.Build.0 = Release|Any CPU
-		{BB3AFF91-94E8-4BF3-A003-2FFAB0622F96}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{BB3AFF91-94E8-4BF3-A003-2FFAB0622F96}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{BB3AFF91-94E8-4BF3-A003-2FFAB0622F96}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{BB3AFF91-94E8-4BF3-A003-2FFAB0622F96}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9DA26AB0-0AC5-4588-A9F6-9B7D3B2D8537}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9DA26AB0-0AC5-4588-A9F6-9B7D3B2D8537}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9DA26AB0-0AC5-4588-A9F6-9B7D3B2D8537}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9DA26AB0-0AC5-4588-A9F6-9B7D3B2D8537}.Release|Any CPU.Build.0 = Release|Any CPU
+		{94302900-1DE5-4ED0-97F3-99711D8A9432}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{94302900-1DE5-4ED0-97F3-99711D8A9432}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{94302900-1DE5-4ED0-97F3-99711D8A9432}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{94302900-1DE5-4ED0-97F3-99711D8A9432}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {F24018F4-F61C-443E-92AA-B6A3490B9669}
 	EndGlobalSection
 EndGlobal

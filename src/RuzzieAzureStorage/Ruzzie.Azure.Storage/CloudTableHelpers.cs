@@ -19,10 +19,11 @@ namespace Ruzzie.Azure.Storage
         {
             List<T> items = new List<T>();
             TableContinuationToken continuationToken = null;
-            
+     
             do
             {
-                TableQuerySegment<T> querySegment = await table.ExecuteQuerySegmentedAsync(query, continuationToken, cancellationToken);
+                TableQuerySegment<T> querySegment = await table.ExecuteQuerySegmentedAsync(query, continuationToken,
+                    new TableRequestOptions(), new OperationContext(), cancellationToken);
                 continuationToken = querySegment.ContinuationToken;
                 items.AddRange(querySegment);
             } while (continuationToken != null && !cancellationToken.IsCancellationRequested);
@@ -40,7 +41,8 @@ namespace Ruzzie.Azure.Storage
 
             do
             {
-                TableQuerySegment<TIn> querySegment = await table.ExecuteQuerySegmentedAsync(query, continuationToken, cancellationToken);
+                TableQuerySegment<TIn> querySegment = await table.ExecuteQuerySegmentedAsync(query, continuationToken,
+                    new TableRequestOptions(), new OperationContext(), cancellationToken);
                 continuationToken = querySegment.ContinuationToken;
                 MapItemsAndAddToList(querySegment.Results, listToAddTo, mapEntityFunc);
             } while (continuationToken != null && !cancellationToken.IsCancellationRequested);
@@ -67,7 +69,7 @@ namespace Ruzzie.Azure.Storage
 
                 TableBatchOperation op = new TableBatchOperation();
                 batch.ToList().ForEach(entity => op.InsertOrMerge(entity));
-                resultCount += tableToInsertTo.ExecuteBatch(op).Count;
+                resultCount += tableToInsertTo.ExecuteBatchAsync(op).Result.Count;
             }
             return resultCount;
         }
@@ -86,7 +88,7 @@ namespace Ruzzie.Azure.Storage
 
                 TableBatchOperation op = new TableBatchOperation();
                 batch.ToList().ForEach(entity => op.Delete(entity));
-                resultCount += tableToDeleteFrom.ExecuteBatch(op).Count;
+                resultCount += tableToDeleteFrom.ExecuteBatchAsync(op).Result.Count;
             }
             return resultCount;
         }
@@ -117,7 +119,7 @@ namespace Ruzzie.Azure.Storage
             //Group and map
             var partitionKeyGroups = GroupByPartitionKeyAndMap(allEntitiesToInsert, map);
 
-            int totalNumberOfOperations = await ExecuteParallelInBatches(cloudTablePoolTask, partitionKeyGroups, cancellationToken, DefaultDegreeOfParallelismForFunctions);
+            int totalNumberOfOperations = await ExecuteParallelInBatches(cloudTablePoolTask, partitionKeyGroups, DefaultDegreeOfParallelismForFunctions, cancellationToken);
 
             return totalNumberOfOperations;
         }
@@ -125,8 +127,8 @@ namespace Ruzzie.Azure.Storage
         private static async Task<int> ExecuteParallelInBatches<TEntityOut>(
             Task<ThreadSafeObjectPool<CloudTable>> cloudTablePoolTask,
             ConcurrentDictionary<string, List<TEntityOut>> partitionKeyGroups,
-            CancellationToken cancellationToken,
-            int poolSize) where TEntityOut : ITableEntity
+            int poolSize,
+            CancellationToken cancellationToken) where TEntityOut : ITableEntity
         {
             int totalNumberOfOperations = 0;
 
@@ -209,7 +211,9 @@ namespace Ruzzie.Azure.Storage
             {
                 op.Add(allOperations[i]);
             }
-            return await tableToInsertTo.ExecuteBatchAsync(op, cancellationToken);
+
+            return await tableToInsertTo.ExecuteBatchAsync(op, new TableRequestOptions(), new OperationContext(),
+                cancellationToken);
         }
 
         private static TableOperation CreateInsertOrMergeOperationForEntity<TEntity>(TEntity entity) where TEntity : ITableEntity
