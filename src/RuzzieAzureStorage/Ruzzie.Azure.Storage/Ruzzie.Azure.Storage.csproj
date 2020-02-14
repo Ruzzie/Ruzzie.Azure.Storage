@@ -24,7 +24,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Azure.Storage.Blob" Version="11.0.1" />
-    <PackageReference Include="Ruzzie.Common" Version="4.0.1.80" />
+    <PackageReference Include="Ruzzie.Common" Version="4.1.0.84" />
     <PackageReference Include="Microsoft.Azure.Cosmos.Table" Version="1.0.5" />
   </ItemGroup>
 </Project>
