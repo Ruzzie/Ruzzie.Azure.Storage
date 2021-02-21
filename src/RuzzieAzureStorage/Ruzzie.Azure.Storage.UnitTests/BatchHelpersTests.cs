@@ -29,6 +29,32 @@ namespace Ruzzie.Azure.Storage.UnitTests
         }
 
         [Fact]
+        public void LargeSetTest()
+        {
+            //Arrange
+            var totalItemCount = 19997;
+            List<int> allItems = new List<int>(totalItemCount);
+            for (int i = 0; i < totalItemCount; i++)
+            {
+                allItems.Add(i);
+            }
+
+            int itemCount = 0;
+            //Act
+            allItems.ExecuteInBatchesAsync(batch =>
+            {
+                return Task.Run(() =>
+                {
+                    batch.Count.Should().BeLessOrEqualTo(100);
+                    itemCount = itemCount + batch.Count;
+                });
+            }, i => i).Wait();
+
+            //Assert
+            itemCount.Should().Be(19997);
+        }
+
+        [Fact]
         public void AllItemsSmallerThanBatchSize()
         {
             List<string> allItems = new List<string> { "1", "2", "3", "4", "5" };
@@ -56,7 +82,7 @@ namespace Ruzzie.Azure.Storage.UnitTests
         }
 
         [Fact]
-        public void BatchSizeOfOneShouldSucceeed()
+        public void BatchSizeOfOneShouldSucceed()
         {
             List<string> allItems = new List<string> { "1", "2", "3", "4", "5" };
             var batchSize = 1;

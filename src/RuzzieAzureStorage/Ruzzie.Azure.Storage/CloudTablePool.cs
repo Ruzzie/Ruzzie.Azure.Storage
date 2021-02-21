@@ -18,10 +18,11 @@ namespace Ruzzie.Azure.Storage
         /// </summary>
         /// <param name="tableName"></param>
         /// <param name="cloudStorageAccount"></param>
-        public CloudTablePool(string tableName, CloudStorageAccount cloudStorageAccount)
+        /// <param name="poolSize">Size of the pool.</param>
+        public CloudTablePool(string tableName, CloudStorageAccount cloudStorageAccount, int poolSize = 16)
         {
             TableName = tableName;
-            _pool = new ThreadSafeObjectPool<CloudTable>(GetNewTableReference);
+            _pool = new ThreadSafeObjectPool<CloudTable>(GetNewTableReference, poolSize);
             _createTableIfNotExistsTask = Pool.ExecuteOnAvailableObject(table => table.CreateIfNotExistsAsync());
             _createTableIfNotExistsTask.ContinueWith(task =>
             {
