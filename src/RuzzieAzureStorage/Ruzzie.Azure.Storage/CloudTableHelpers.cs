@@ -5,7 +5,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Azure.Cosmos.Table;
-using Ruzzie.Common.Threading;
 
 namespace Ruzzie.Azure.Storage
 {
@@ -18,7 +17,7 @@ namespace Ruzzie.Azure.Storage
         {
             List<T> items = new List<T>();
             TableContinuationToken continuationToken = null;
-     
+
             do
             {
                 TableQuerySegment<T> querySegment = await table.ExecuteQuerySegmentedAsync(query, continuationToken,
@@ -34,7 +33,7 @@ namespace Ruzzie.Azure.Storage
             Func<TIn, TOut> mapEntityFunc) where TIn : ITableEntity, new()
         {
             var query = new TableQuery<TIn>().Where(TableQuery.GenerateFilterCondition("PartitionKey", "eq", partitionKey));
-            
+
             TableContinuationToken continuationToken = null;
             CancellationToken cancellationToken = default(CancellationToken);
 
@@ -68,7 +67,7 @@ namespace Ruzzie.Azure.Storage
 
                 TableBatchOperation op = new TableBatchOperation();
                 batch.ToList().ForEach(entity => op.InsertOrMerge(entity));
-                resultCount += tableToInsertTo.ExecuteBatchAsync(op).Result.Count;
+                resultCount += tableToInsertTo.ExecuteBatchAsync(op).GetAwaiter().GetResult().Count;
             }
             return resultCount;
         }
@@ -87,7 +86,7 @@ namespace Ruzzie.Azure.Storage
 
                 TableBatchOperation op = new TableBatchOperation();
                 batch.ToList().ForEach(entity => op.Delete(entity));
-                resultCount += tableToDeleteFrom.ExecuteBatchAsync(op).Result.Count;
+                resultCount += tableToDeleteFrom.ExecuteBatchAsync(op).GetAwaiter().GetResult().Count;
             }
             return resultCount;
         }
@@ -108,38 +107,33 @@ namespace Ruzzie.Azure.Storage
             CloudTable tableToInsertTo,
             CancellationToken cancellationToken = default(CancellationToken)) where TEntityOut : ITableEntity
         {
-            var cloudTablePoolTask = Task.Run(() =>
-            {
-                CloudStorageAccount storageAccount = new CloudStorageAccount(tableToInsertTo.ServiceClient.Credentials, true);
-                var currentTableName = tableToInsertTo.Name;
-                return new ThreadSafeObjectPool<CloudTable>(() => storageAccount.CreateCloudTableClient().GetTableReference(currentTableName), DefaultDegreeOfParallelismForFunctions);
-            }, cancellationToken);
 
             //Group and map
             var partitionKeyGroups = GroupByPartitionKeyAndMap(allEntitiesToInsert, map);
 
-            int totalNumberOfOperations = await ExecuteParallelInBatches(cloudTablePoolTask, partitionKeyGroups, DefaultDegreeOfParallelismForFunctions, cancellationToken);
-
-            return totalNumberOfOperations;
+            return await Task.Run(() => ExecuteParallelInBatches(tableToInsertTo, partitionKeyGroups,
+                                                                 DefaultDegreeOfParallelismForFunctions,
+                                                                 cancellationToken)
+                                  , cancellationToken);
         }
 
-        private static async Task<int> ExecuteParallelInBatches<TEntityOut>(
-            Task<ThreadSafeObjectPool<CloudTable>> cloudTablePoolTask,
+        private static int ExecuteParallelInBatches<TEntityOut>(
+            CloudTable cloudTable,
             ConcurrentDictionary<string, List<TEntityOut>> partitionKeyGroups,
-            int poolSize,
+            int maxDegreeOfParallelism,
             CancellationToken cancellationToken) where TEntityOut : ITableEntity
         {
             int totalNumberOfOperations = 0;
 
             //Execute each partition in batches
-            var cloudTablePool = await cloudTablePoolTask;
-            ParallelOptions options = new ParallelOptions {MaxDegreeOfParallelism = poolSize, CancellationToken = cancellationToken};
+            ParallelOptions options = new ParallelOptions {MaxDegreeOfParallelism = maxDegreeOfParallelism, CancellationToken = cancellationToken};
 
             Parallel.ForEach(partitionKeyGroups, options, grp =>
             {
-                //Yes i know, this isnt async, doesnt need to , needs to be parallel.
-                var count = cloudTablePool.ExecuteOnAvailableObject(
-                    table => ExecuteInsertOrMergeInBatchesAsyncInSinglePartition(grp.Value, table, cancellationToken, 100).Result);
+                //Yes i know, this isn't async, doesn't need to , needs to be parallel.
+                var count = ExecuteInsertOrMergeInBatchesAsyncInSinglePartition(grp.Value, cloudTable, cancellationToken, 100)
+                            .GetAwaiter()
+                            .GetResult();
                 // ReSharper disable once AccessToModifiedClosure
                 Interlocked.Add(ref totalNumberOfOperations, count);
             });
@@ -149,9 +143,9 @@ namespace Ruzzie.Azure.Storage
         private static ConcurrentDictionary<string, List<TEntityOut>> GroupByPartitionKeyAndMap<TEntityIn, TEntityOut>(IReadOnlyList<TEntityIn> allEntitiesToInsert, Func<TEntityIn, TEntityOut> map) where TEntityOut : ITableEntity
         {
             ConcurrentDictionary<string, List<TEntityOut>> partitionKeyGroups = new ConcurrentDictionary<string, List<TEntityOut>>();
-            int totalNumberOfEntititiesToInsert = allEntitiesToInsert.Count;
+            int totalNumberOfEntitiesToInsert = allEntitiesToInsert.Count;
 
-            for (int i = 0; i < totalNumberOfEntititiesToInsert; i++)
+            for (int i = 0; i < totalNumberOfEntitiesToInsert; i++)
             {
                 var entityToInsert = map(allEntitiesToInsert[i]);
 
@@ -165,7 +159,7 @@ namespace Ruzzie.Azure.Storage
                         return partitionList;
                     });
             }
-           
+
             return partitionKeyGroups;
         }
 
@@ -180,7 +174,7 @@ namespace Ruzzie.Azure.Storage
         public static async Task<int> ExecuteInsertOrMergeInBatchesAsync<TEntity>(List<TEntity> allEntitiesToInsert, CloudTable tableToInsertTo,
             CancellationToken cancellationToken = default(CancellationToken)) where TEntity : ITableEntity
         {
-            return await ExecuteInsertOrMergeInBatchesAsync(allEntitiesToInsert,entity => entity, tableToInsertTo, cancellationToken);         
+            return await ExecuteInsertOrMergeInBatchesAsync(allEntitiesToInsert,entity => entity, tableToInsertTo, cancellationToken);
         }
 
         private static async Task<int> ExecuteInsertOrMergeInBatchesAsyncInSinglePartition<TEntity>(

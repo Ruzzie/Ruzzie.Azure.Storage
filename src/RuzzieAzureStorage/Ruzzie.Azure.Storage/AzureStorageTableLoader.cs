@@ -5,7 +5,6 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Azure.Cosmos.Table;
-using Ruzzie.Common.Threading;
 
 namespace Ruzzie.Azure.Storage
 {
@@ -18,7 +17,7 @@ namespace Ruzzie.Azure.Storage
     public class AzureStorageTableLoader<TIn, TOut> : IDisposable where TIn :  ITableEntity, new()
     {
         private readonly Func<TIn, TOut> _mapEntityFunc;
-        private readonly ThreadSafeObjectPool<CloudTable> _tablePool;
+        private readonly ITablePool<CloudTable> _tablePool;
         private readonly Task _readAllCardsInitTask;
         private ReadOnlyCollection<TOut> _allEntities;
 
@@ -38,8 +37,7 @@ namespace Ruzzie.Azure.Storage
             }
             _mapEntityFunc = mapEntityFunc;
 
-            CloudStorageAccount storageAccount = new CloudStorageAccount(table.ServiceClient.Credentials, true);
-            _tablePool = new ThreadSafeObjectPool<CloudTable>(() => storageAccount.CreateCloudTableClient().GetTableReference(table.Name));
+            _tablePool = new CloudTablePool(table.Name, table.ServiceClient );
 
             _readAllCardsInitTask = Task.Run(async () =>
             {
@@ -101,11 +99,11 @@ namespace Ruzzie.Azure.Storage
 
             _mapEntityFunc = mapEntityFunc;
             CloudStorageAccount storageAccount = CloudStorageAccount.Parse(connectionString);
-            _tablePool = new ThreadSafeObjectPool<CloudTable>(() => storageAccount.CreateCloudTableClient().GetTableReference(tableName));
+            _tablePool = new CloudTablePool(tableName, storageAccount.CreateCloudTableClient());
 
             _readAllCardsInitTask = Task.Run(async () =>
             {
-                _allEntities = await ReadAllEntitiesFromTableStorage(allPartitionKeys);                
+                _allEntities = await ReadAllEntitiesFromTableStorage(allPartitionKeys);
             });
         }
 
@@ -129,7 +127,7 @@ namespace Ruzzie.Azure.Storage
 
         private Task ReadAllEntitiesForPartitionKey(string partitionKey, ConcurrentBag<TOut> listToAddTo)
         {
-            return _tablePool.ExecuteOnAvailableObject(async table =>
+            return _tablePool.Execute(async table =>
             {
                 await CloudTableHelpers.LoopResultSetAndMap(partitionKey, listToAddTo, table, _mapEntityFunc);
             });
@@ -144,7 +142,7 @@ namespace Ruzzie.Azure.Storage
         public ReadOnlyCollection<TOut> AllEntities
         {
             get
-            {                
+            {
                 _readAllCardsInitTask?.Wait();
                 return _allEntities;
             }

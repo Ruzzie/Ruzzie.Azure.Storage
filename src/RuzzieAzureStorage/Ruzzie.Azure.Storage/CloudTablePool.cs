@@ -5,7 +5,7 @@ using Ruzzie.Common.Threading;
 
 namespace Ruzzie.Azure.Storage
 {
-    public interface ITablePool<T>
+    public interface ITablePool<T> : IDisposable
     {
         string                  TableName { get; }
         IObjectPool<T> Pool      { get; }
@@ -92,6 +92,12 @@ namespace Ruzzie.Azure.Storage
                 _createTableIfNotExistsTask?.Wait();
                 return _pool;
             }
+        }
+
+        public void Dispose()
+        {
+            _createTableIfNotExistsTask?.Dispose();
+            _pool?.Dispose();
         }
     }
 }
