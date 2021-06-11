@@ -18,7 +18,7 @@ namespace Ruzzie.Azure.Storage
     {
         private readonly Func<TIn, TOut> _mapEntityFunc;
         private readonly ITablePool<CloudTable> _tablePool;
-        private readonly Task _readAllCardsInitTask;
+        private readonly Task _readAllEntitiesTask;
         private ReadOnlyCollection<TOut> _allEntities;
 
         /// <summary>
@@ -37,9 +37,9 @@ namespace Ruzzie.Azure.Storage
             }
             _mapEntityFunc = mapEntityFunc;
 
-            _tablePool = new CloudTablePool(table.Name, table.ServiceClient );
+            _tablePool = new CloudTablePool(table.Name, table.ServiceClient);
 
-            _readAllCardsInitTask = Task.Run(async () =>
+            _readAllEntitiesTask = Task.Run(async () =>
             {
                 _allEntities = await ReadAllEntitiesFromTableStorage(allPartitionKeys);
                 //_readAllCardsInitTask = null;
@@ -58,9 +58,9 @@ namespace Ruzzie.Azure.Storage
                 {
                     _tablePool.Dispose();
                 }
-                if (_readAllCardsInitTask != null)
+                if (_readAllEntitiesTask != null)
                 {
-                    _readAllCardsInitTask.Dispose();
+                    _readAllEntitiesTask.Dispose();
                 }
             }
         }
@@ -101,7 +101,7 @@ namespace Ruzzie.Azure.Storage
             CloudStorageAccount storageAccount = CloudStorageAccount.Parse(connectionString);
             _tablePool = new CloudTablePool(tableName, storageAccount.CreateCloudTableClient());
 
-            _readAllCardsInitTask = Task.Run(async () =>
+            _readAllEntitiesTask = Task.Run(async () =>
             {
                 _allEntities = await ReadAllEntitiesFromTableStorage(allPartitionKeys);
             });
@@ -143,7 +143,7 @@ namespace Ruzzie.Azure.Storage
         {
             get
             {
-                _readAllCardsInitTask?.Wait();
+                _readAllEntitiesTask?.Wait();
                 return _allEntities;
             }
         }

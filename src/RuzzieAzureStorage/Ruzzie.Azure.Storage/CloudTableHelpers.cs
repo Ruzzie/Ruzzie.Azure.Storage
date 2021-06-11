@@ -39,8 +39,10 @@ namespace Ruzzie.Azure.Storage
 
             do
             {
-                TableQuerySegment<TIn> querySegment = await table.ExecuteQuerySegmentedAsync(query, continuationToken,
-                    new TableRequestOptions(), new OperationContext(), cancellationToken);
+                var querySegment = await table.ExecuteQuerySegmentedAsync(query, continuationToken,
+                                                                          new TableRequestOptions(),
+                                                                          new OperationContext(), cancellationToken);
+
                 continuationToken = querySegment.ContinuationToken;
                 MapItemsAndAddToList(querySegment.Results, listToAddTo, mapEntityFunc);
             } while (continuationToken != null && !cancellationToken.IsCancellationRequested);

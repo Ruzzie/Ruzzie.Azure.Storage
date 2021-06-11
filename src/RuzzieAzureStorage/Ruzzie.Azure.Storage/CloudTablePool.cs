@@ -5,16 +5,16 @@ using Ruzzie.Common.Threading;
 
 namespace Ruzzie.Azure.Storage
 {
-    public interface ITablePool<T> : IDisposable
+    public interface ITablePool<TTable> : IDisposable
     {
-        string                  TableName { get; }
-        IObjectPool<T> Pool      { get; }
+        string              TableName { get; }
+        IObjectPool<TTable> Pool      { get; }
 
         /// Executed the given function in the configured pool <see cref="IObjectPool{T}.ExecuteOnAvailableObject{TResult}"/>, for easy access.
-        public TResult Execute<TResult>(Func<T, TResult> funcToExecute);
+        public TResult Execute<TResult>(Func<TTable, TResult> funcToExecute);
 
         /// Executed the given function async in the configured pool <see cref="IObjectPool{T}.ExecuteOnAvailableObject{TResult}"/>, for easy access.
-        public Task<TResult> ExecuteAsync<TResult>(Func<T, Task<TResult>> funcToExecute);
+        public Task<TResult> ExecuteAsync<TResult>(Func<TTable, Task<TResult>> funcToExecute);
     }
 
     /// <summary>
@@ -22,32 +22,10 @@ namespace Ruzzie.Azure.Storage
     /// </summary>
     public class CloudTablePool : ITablePool<CloudTable>
     {
+        private readonly Task                         _createTableIfNotExistsTask;
+        private readonly SingleObjectPool<CloudTable> _pool;
+
         public string TableName { get; }
-        private readonly Task _createTableIfNotExistsTask;
-        private readonly IObjectPool<CloudTable> _pool;
-
-        /// <summary>
-        /// Create a new ThreadSafe Pool of CloudTables. If the table does not exist, it will automatically be created.
-        /// </summary>
-        /// <param name="tableName"></param>
-        /// <param name="cloudStorageAccount"></param>
-        /// <param name="poolSize">Size of the pool.</param>
-        [Obsolete("the new azure table client sdk version is thread safe, this ctor is obsolete.")]
-        public CloudTablePool(string tableName, CloudStorageAccount cloudStorageAccount, int poolSize = 16)
-        {
-            TableName = tableName;
-            _pool = new ThreadSafeObjectPool<CloudTable>(GetNewTableReference, poolSize);
-            _createTableIfNotExistsTask = Pool.ExecuteOnAvailableObject(table => table.CreateIfNotExistsAsync());
-            _createTableIfNotExistsTask.ContinueWith(task =>
-            {
-                _createTableIfNotExistsTask.Dispose();
-            });
-
-            CloudTable GetNewTableReference()
-            {
-                return cloudStorageAccount.CreateCloudTableClient().GetTableReference(tableName);
-            }
-        }
 
         /// <summary>
         /// Create access to CloudTables. If the table does not exist, it will automatically be created.
@@ -71,6 +49,13 @@ namespace Ruzzie.Azure.Storage
             {
                 return cloudTableClient.GetTableReference(tableName);
             }
+        }
+
+        internal CloudTablePool(string tableName, CloudTable table)
+        {
+            TableName                   = tableName;
+            _pool                       = new SingleObjectPool<CloudTable>(table);
+            _createTableIfNotExistsTask = table.CreateIfNotExistsAsync().ContinueWith(t => t.Dispose());
         }
 
         /// Executed the given function in the configured pool <see cref="IObjectPool{T}.ExecuteOnAvailableObject{TResult}"/>, for easy access.
