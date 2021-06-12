@@ -16,10 +16,10 @@ namespace Ruzzie.Azure.Storage
     /// <seealso cref="IDisposable" />
     public class AzureStorageTableLoader<TIn, TOut> : IDisposable where TIn :  ITableEntity, new()
     {
-        private readonly Func<TIn, TOut> _mapEntityFunc;
-        private readonly ITablePool<CloudTable> _tablePool;
-        private readonly Task _readAllEntitiesTask;
-        private ReadOnlyCollection<TOut> _allEntities;
+        private readonly Func<TIn, TOut>          _mapEntityFunc;
+        private readonly ITablePool<CloudTable>   _tablePool;
+        private readonly Task                     _readAllEntitiesTask;
+        private          ReadOnlyCollection<TOut> _allEntities;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="AzureStorageTableLoader{TIn, TOut}"/> class.
@@ -42,7 +42,6 @@ namespace Ruzzie.Azure.Storage
             _readAllEntitiesTask = Task.Run(async () =>
             {
                 _allEntities = await ReadAllEntitiesFromTableStorage(allPartitionKeys);
-                //_readAllCardsInitTask = null;
             });
         }
 
@@ -111,16 +110,16 @@ namespace Ruzzie.Azure.Storage
         {
             var res = Task.Run(async () =>
             {
-                ConcurrentBag<TOut> allItems = new ConcurrentBag<TOut>();
+                ConcurrentBag<TOut> sharedItemList = new ConcurrentBag<TOut>();
                 var allTasks = new ConcurrentBag<Task>();
                 Parallel.ForEach(allPartitionKeys, partitionKey =>
                 {
-                    allTasks.Add(ReadAllEntitiesForPartitionKey(partitionKey, allItems));
+                    allTasks.Add(ReadAllEntitiesForPartitionKey(partitionKey, sharedItemList));
                 });
 
                 await Task.WhenAll(allTasks);
                 // no more concurrent writes needed so create a List
-                return allItems.ToList().AsReadOnly();
+                return sharedItemList.ToList().AsReadOnly();
             });
             return await res;
         }

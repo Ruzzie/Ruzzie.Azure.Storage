@@ -1,7 +1,7 @@
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace Ruzzie.Azure.Storage
@@ -19,22 +19,26 @@ namespace Ruzzie.Azure.Storage
         /// <param name="allItems">All items.</param>
         /// <param name="executeOnBatch">The function to execute for each batch..</param>
         /// <param name="mapEachFunc">The map unction to map TIn to TOut. When TOut is null it will be skipped in the batch.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
         /// <param name="batchSize">Size of the batch.</param>
         /// <returns></returns>
         /// <exception cref="ArgumentNullException">
         /// </exception>
         /// <exception cref="Exception">currentItem is null on index: {i}. numberOfItemsSoFarInCurrentBatch: {entitiesBatch.Count}, allitemsSize: {allItems.Count}-{allItemsCount}");</exception>
-        public static async Task ExecuteInBatchesAsync<TIn, TOut>(this IList<TIn> allItems, Func<List<TOut>, Task> executeOnBatch, Func<TIn, TOut> mapEachFunc, CancellationToken cancellationToken = default(CancellationToken), int batchSize = 100)
+        public static async Task ExecuteInBatchesAsync<TIn, TOut>(this IList<TIn>        allItems,
+                                                                  Func<List<TOut>, Task> executeOnBatch,
+                                                                  Func<TIn, TOut>        mapEachFunc,
+                                                                  int                    batchSize = 100)
         {
             if (allItems == null)
             {
                 throw new ArgumentNullException(nameof(allItems));
             }
+
             if (executeOnBatch == null)
             {
                 throw new ArgumentNullException(nameof(executeOnBatch));
             }
+
             if (mapEachFunc == null)
             {
                 throw new ArgumentNullException(nameof(mapEachFunc));
@@ -46,7 +50,7 @@ namespace Ruzzie.Azure.Storage
             }
 
             var entitiesBatch = new List<TOut>(batchSize);
-            int allItemsCount = allItems.Count;
+            var allItemsCount = allItems.Count;
 
             for (int i = 0; i < allItemsCount; i++)
             {
@@ -56,13 +60,15 @@ namespace Ruzzie.Azure.Storage
                 if (i > 0 && i % batchSize == 0)
                 {
                     //When batchsize is reached, call execute and create new batch
-                    await executeOnBatch(entitiesBatch.ToList());
-                    entitiesBatch = new List<TOut>(batchSize);
+                    await executeOnBatch(new List<TOut>(entitiesBatch));
+
+                    entitiesBatch.Clear();
                 }
 
                 if (currentItem == null)
                 {
-                    throw new Exception($"currentItem is null on index: {i}. numberOfItemsSoFarInCurrentBatch: {entitiesBatch.Count}, allitemsSize: {allItems.Count}-{allItemsCount}");
+                    throw new
+                        Exception($"currentItem is null on index: {i}. numberOfItemsSoFarInCurrentBatch: {entitiesBatch.Count}, allitemsSize: {allItems.Count}-{allItemsCount}");
                 }
 
                 var mappedItem = mapEachFunc(currentItem);
@@ -76,7 +82,7 @@ namespace Ruzzie.Azure.Storage
             //The last batch
             if (entitiesBatch.Count > 0)
             {
-                await executeOnBatch(entitiesBatch.ToList());
+                await executeOnBatch(entitiesBatch);
             }
         }
     }
