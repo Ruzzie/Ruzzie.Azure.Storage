@@ -80,8 +80,8 @@ namespace Ruzzie.Azure.Storage
 
         private static string DownloadAsText(CloudBlob blobReference)
         {
-            Stream memoryStream = null;
-            TextReader reader = null;
+            Stream? memoryStream = null;
+            TextReader? reader = null;
             try
             {
                 memoryStream = new MemoryStream();

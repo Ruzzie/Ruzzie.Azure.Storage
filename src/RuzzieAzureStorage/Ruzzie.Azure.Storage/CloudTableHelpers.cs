@@ -13,14 +13,14 @@ namespace Ruzzie.Azure.Storage
         public static readonly int DefaultDegreeOfParallelismForFunctions =
             Environment.ProcessorCount > 4 ? Environment.ProcessorCount - 2 : 2;
 
-        public static async Task<IList<T>> ExecuteQueryAsync<T>(this CloudTable table,
-                                                                TableQuery<T>   query,
-                                                                CancellationToken cancellationToken =
+        public static async Task<IList<T>> ExecuteQueryAsync<T>(this CloudTable table
+                                                              , TableQuery<T>   query
+                                                              , CancellationToken cancellationToken =
                                                                     default(CancellationToken))
             where T : ITableEntity, new()
         {
-            List<T>                items             = new List<T>();
-            TableContinuationToken continuationToken = null;
+            List<T>                 items             = new List<T>();
+            TableContinuationToken? continuationToken = null;
 
             do
             {
@@ -33,48 +33,46 @@ namespace Ruzzie.Azure.Storage
             return items;
         }
 
-        public static async Task LoopResultSetAndMap<TOut, TIn>(string              partitionKey,
-                                                                ConcurrentBag<TOut> listToAddTo,
-                                                                CloudTable          table,
-                                                                Func<TIn, TOut>     mapEntityFunc)
+        public static async Task LoopResultSetAndMap<TOut, TIn>(string              partitionKey
+                                                              , ConcurrentBag<TOut> listToAddTo
+                                                              , CloudTable          table
+                                                              , Func<TIn, TOut>     mapEntityFunc)
             where TIn : ITableEntity, new()
         {
             var query =
                 new TableQuery<TIn>()
                     .Where(TableQuery.GenerateFilterCondition("PartitionKey", "eq", partitionKey));
 
-            TableContinuationToken continuationToken = null;
-            CancellationToken      cancellationToken = default(CancellationToken);
+            TableContinuationToken? continuationToken = null;
+            CancellationToken       cancellationToken = default(CancellationToken);
 
             do
             {
-                var querySegment = await table.ExecuteQuerySegmentedAsync(query,
-                                                                          continuationToken,
-                                                                          cancellationToken);
+                var querySegment = await table.ExecuteQuerySegmentedAsync(query, continuationToken, cancellationToken);
 
                 continuationToken = querySegment.ContinuationToken;
                 MapItemsAndAddToList(querySegment.Results, listToAddTo, mapEntityFunc);
             } while (continuationToken != null && !cancellationToken.IsCancellationRequested);
         }
 
-        private static void MapItemsAndAddToList<TIn, TOut>(IReadOnlyList<TIn>  itemsToMap,
-                                                            ConcurrentBag<TOut> listToAddTo,
-                                                            Func<TIn, TOut>     mapEntityFunc)
+        private static void MapItemsAndAddToList<TIn, TOut>(IReadOnlyList<TIn>  itemsToMap
+                                                          , ConcurrentBag<TOut> listToAddTo
+                                                          , Func<TIn, TOut>     mapEntityFunc)
             where TIn : ITableEntity, new()
         {
             int numberOfItems = itemsToMap.Count;
             Parallel.For(0, numberOfItems, i => { listToAddTo.Add(mapEntityFunc(itemsToMap[i])); });
         }
 
-        public static int ExecuteInsertOrMergeInBatches<TEntity>(List<TEntity> allEntitiesToInsert,
-                                                                 CloudTable    tableToInsertTo)
+        public static int ExecuteInsertOrMergeInBatches<TEntity>(List<TEntity> allEntitiesToInsert
+                                                               , CloudTable    tableToInsertTo)
             where TEntity : ITableEntity
         {
             int batchSize = 100;
 
             int numberOfItems = allEntitiesToInsert.Count;
 
-            int numberOfBatches = (int) Math.Ceiling((double) numberOfItems / batchSize);
+            int numberOfBatches = (int)Math.Ceiling((double)numberOfItems / batchSize);
             int resultCount     = 0;
             for (int i = 0; i < numberOfBatches; i++)
             {
@@ -88,14 +86,14 @@ namespace Ruzzie.Azure.Storage
             return resultCount;
         }
 
-        public static int ExecuteDeleteInBatches<TEntity>(List<TEntity> allEntitiesToDelete,
-                                                          CloudTable    tableToDeleteFrom) where TEntity : ITableEntity
+        public static int ExecuteDeleteInBatches<TEntity>(List<TEntity> allEntitiesToDelete
+                                                        , CloudTable    tableToDeleteFrom) where TEntity : ITableEntity
         {
             int batchSize = 100;
 
             int numberOfItems = allEntitiesToDelete.Count;
 
-            int numberOfBatches = (int) Math.Ceiling((double) numberOfItems / batchSize);
+            int numberOfBatches = (int)Math.Ceiling((double)numberOfItems / batchSize);
             int resultCount     = 0;
             for (int i = 0; i < numberOfBatches; i++)
             {
@@ -120,48 +118,57 @@ namespace Ruzzie.Azure.Storage
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The total number of operations.</returns>
         public static async Task<int> ExecuteInsertOrMergeInBatchesAsync<TEntityIn, TEntityOut>(
-            List<TEntityIn>             allEntitiesToInsert,
-            Func<TEntityIn, TEntityOut> map,
-            CloudTable                  tableToInsertTo,
-            CancellationToken           cancellationToken = default(CancellationToken)) where TEntityOut : ITableEntity
+            List<TEntityIn>             allEntitiesToInsert
+          , Func<TEntityIn, TEntityOut> map
+          , CloudTable                  tableToInsertTo
+          , CancellationToken           cancellationToken = default(CancellationToken)) where TEntityOut : ITableEntity
         {
             //Group and map
             var partitionKeyGroups = GroupByPartitionKeyAndMap(allEntitiesToInsert, map);
 
-            return await Task.Run(() => ExecuteParallelInBatches(tableToInsertTo, partitionKeyGroups,
-                                                                 DefaultDegreeOfParallelismForFunctions,
-                                                                 cancellationToken)
-                                  , cancellationToken);
+            return await Task.Run(() => ExecuteParallelInBatches(tableToInsertTo
+                                                               , partitionKeyGroups
+                                                               , DefaultDegreeOfParallelismForFunctions
+                                                               , cancellationToken)
+                                , cancellationToken);
         }
 
         private static int ExecuteParallelInBatches<TEntityOut>(
-            CloudTable                                     cloudTable,
-            ConcurrentDictionary<string, List<TEntityOut>> partitionKeyGroups,
-            int                                            maxDegreeOfParallelism,
-            CancellationToken                              cancellationToken) where TEntityOut : ITableEntity
+            CloudTable                                     cloudTable
+          , ConcurrentDictionary<string, List<TEntityOut>> partitionKeyGroups
+          , int                                            maxDegreeOfParallelism
+          , CancellationToken                              cancellationToken) where TEntityOut : ITableEntity
         {
             int totalNumberOfOperations = 0;
 
             //Execute each partition in batches
             ParallelOptions options = new ParallelOptions
-                {MaxDegreeOfParallelism = maxDegreeOfParallelism, CancellationToken = cancellationToken};
+                                      {
+                                          MaxDegreeOfParallelism = maxDegreeOfParallelism
+                                        , CancellationToken      = cancellationToken
+                                      };
 
-            Parallel.ForEach(partitionKeyGroups, options, grp =>
-            {
-                //Yes i know, this isn't async, doesn't need to , needs to be parallel.
-                var count =
-                    ExecuteInsertOrMergeInBatchesAsyncInSinglePartition(grp.Value, cloudTable, cancellationToken, 100)
-                        .GetAwaiter()
-                        .GetResult();
-                // ReSharper disable once AccessToModifiedClosure
-                Interlocked.Add(ref totalNumberOfOperations, count);
-            });
+            Parallel.ForEach(partitionKeyGroups
+                           , options
+                           , grp =>
+                             {
+                                 //Yes i know, this isn't async, doesn't need to , needs to be parallel.
+                                 var count =
+                                     ExecuteInsertOrMergeInBatchesAsyncInSinglePartition(grp.Value
+                                                                                       , cloudTable
+                                                                                       , cancellationToken
+                                                                                       , 100)
+                                         .GetAwaiter()
+                                         .GetResult();
+                                 // ReSharper disable once AccessToModifiedClosure
+                                 Interlocked.Add(ref totalNumberOfOperations, count);
+                             });
             return totalNumberOfOperations;
         }
 
         private static ConcurrentDictionary<string, List<TEntityOut>> GroupByPartitionKeyAndMap<TEntityIn, TEntityOut>(
-            IReadOnlyList<TEntityIn>    allEntitiesToInsert,
-            Func<TEntityIn, TEntityOut> map) where TEntityOut : ITableEntity
+            IReadOnlyList<TEntityIn>    allEntitiesToInsert
+          , Func<TEntityIn, TEntityOut> map) where TEntityOut : ITableEntity
         {
             ConcurrentDictionary<string, List<TEntityOut>> partitionKeyGroups =
                 new ConcurrentDictionary<string, List<TEntityOut>>();
@@ -171,9 +178,11 @@ namespace Ruzzie.Azure.Storage
             {
                 var entityToInsert = map(allEntitiesToInsert[i]);
 
-                partitionKeyGroups.AddOrUpdate(entityToInsert.PartitionKey,
+                partitionKeyGroups.AddOrUpdate(entityToInsert.PartitionKey
+                                              ,
                                                //Add
-                                               new List<TEntityOut> {entityToInsert},
+                                               new List<TEntityOut> { entityToInsert }
+                                              ,
                                                //Update
                                                (key, partitionList) =>
                                                {
@@ -193,36 +202,41 @@ namespace Ruzzie.Azure.Storage
         /// <param name="tableToInsertTo">The table to insert to.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The number of executed operations.</returns>
-        public static async Task<int> ExecuteInsertOrMergeInBatchesAsync<TEntity>(List<TEntity> allEntitiesToInsert,
-            CloudTable tableToInsertTo,
-            CancellationToken cancellationToken = default(CancellationToken)) where TEntity : ITableEntity
+        public static async Task<int> ExecuteInsertOrMergeInBatchesAsync<TEntity>(
+            List<TEntity>     allEntitiesToInsert
+          , CloudTable        tableToInsertTo
+          , CancellationToken cancellationToken = default(CancellationToken)) where TEntity : ITableEntity
         {
-            return await ExecuteInsertOrMergeInBatchesAsync(allEntitiesToInsert, entity => entity, tableToInsertTo,
-                                                            cancellationToken);
+            return await ExecuteInsertOrMergeInBatchesAsync(allEntitiesToInsert
+                                                          , entity => entity
+                                                          , tableToInsertTo
+                                                          , cancellationToken);
         }
 
         private static async Task<int> ExecuteInsertOrMergeInBatchesAsyncInSinglePartition<TEntity>(
-            IList<TEntity>    allEntitiesToInsertInPartition,
-            CloudTable        tableToInsertTo,
-            CancellationToken cancellationToken,
-            int               batchSize = 100) where TEntity : ITableEntity
+            IList<TEntity>    allEntitiesToInsertInPartition
+          , CloudTable        tableToInsertTo
+          , CancellationToken cancellationToken
+          , int               batchSize = 100) where TEntity : ITableEntity
         {
             int totalCount = 0;
-            await allEntitiesToInsertInPartition.ExecuteInBatchesAsync
-                (async itemsInBatch =>
-                 {
-                     var r = await ExecuteBatchAsync(tableToInsertTo, itemsInBatch, cancellationToken);
-                     totalCount += r.Count;
-                 },
-                 CreateInsertOrMergeOperationForEntity,
-                 batchSize);
+            await allEntitiesToInsertInPartition.ExecuteInBatchesAsync(async itemsInBatch =>
+                                                                       {
+                                                                           var r =
+                                                                               await ExecuteBatchAsync(tableToInsertTo
+                                                                                                     , itemsInBatch
+                                                                                                     , cancellationToken);
+                                                                           totalCount += r.Count;
+                                                                       }
+                                                                     , CreateInsertOrMergeOperationForEntity
+                                                                     , batchSize);
 
             return totalCount;
         }
 
-        private static async Task<IList<TableResult>> ExecuteBatchAsync(CloudTable                    tableToInsertTo,
-                                                                        IReadOnlyList<TableOperation> allOperations,
-                                                                        CancellationToken             cancellationToken)
+        private static async Task<IList<TableResult>> ExecuteBatchAsync(CloudTable                    tableToInsertTo
+                                                                      , IReadOnlyList<TableOperation> allOperations
+                                                                      , CancellationToken             cancellationToken)
         {
             TableBatchOperation op                 = new TableBatchOperation();
             int                 allOperationsCount = allOperations.Count;
@@ -232,8 +246,10 @@ namespace Ruzzie.Azure.Storage
                 op.Add(allOperations[i]);
             }
 
-            return await tableToInsertTo.ExecuteBatchAsync(op, new TableRequestOptions(), new OperationContext(),
-                                                           cancellationToken);
+            return await tableToInsertTo.ExecuteBatchAsync(op
+                                                         , new TableRequestOptions()
+                                                         , new OperationContext()
+                                                         , cancellationToken);
         }
 
         private static TableOperation CreateInsertOrMergeOperationForEntity<TEntity>(TEntity entity)
