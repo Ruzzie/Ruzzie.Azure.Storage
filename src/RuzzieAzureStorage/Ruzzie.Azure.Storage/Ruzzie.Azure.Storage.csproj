@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.1;net6.0</TargetFrameworks>
+    <TargetFrameworks>net6.0;</TargetFrameworks>
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <WarningsAsErrors />
@@ -8,7 +8,7 @@
     <Version>1.0.0.0</Version>
     <Authors>Dorus Verhoeckx</Authors>
     <Company>D Crafting</Company>
-    <Copyright>Copyright © Dorus Verhoeckx 2019</Copyright>
+    <Copyright>Copyright © Dorus Verhoeckx 2023</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/Ruzzie/Ruzzie.Azure.Storage</RepositoryUrl>
     <PackageProjectUrl>https://github.com/Ruzzie/Ruzzie.Azure.Storage</PackageProjectUrl>
@@ -18,13 +18,13 @@
     <LangVersion>default</LangVersion>
   </PropertyGroup>
   <PropertyGroup>
-    <NoWarn>1701;1702;1591</NoWarn>
+    <NoWarn>1591</NoWarn>
     <Description>.net helpers and utilities for Azure storage</Description>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Azure.Storage.Blob" Version="11.0.1" />
-    <PackageReference Include="Ruzzie.Common" Version="6.0.1.101" />
+    <PackageReference Include="Ruzzie.Common" Version="7.0.0.113" />
     <PackageReference Include="Microsoft.Azure.Cosmos.Table" Version="1.0.8" />
   </ItemGroup>
 
