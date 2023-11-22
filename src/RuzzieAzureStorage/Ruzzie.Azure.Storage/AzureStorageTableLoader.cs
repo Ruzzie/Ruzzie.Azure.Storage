@@ -19,9 +19,9 @@ namespace Ruzzie.Azure.Storage
         private static readonly ReadOnlyCollection<TOut> EmptyEntitiesCollection =
             new ReadOnlyCollection<TOut>(Array.Empty<TOut>());
 
-        private readonly Func<TIn, TOut>           _mapEntityFunc;
-        private readonly ITablePool<CloudTable>    _tablePool;
-        private readonly Task?                     _readAllEntitiesTask;
+        private readonly Func<TIn, TOut>          _mapEntityFunc;
+        private readonly CloudTablePool           _tablePool;
+        private readonly Task?                    _readAllEntitiesTask;
         private          ReadOnlyCollection<TOut> _allEntities = EmptyEntitiesCollection;
 
         /// <summary>
@@ -141,13 +141,10 @@ namespace Ruzzie.Azure.Storage
 
         private Task ReadAllEntitiesForPartitionKey(string partitionKey, ConcurrentBag<TOut> listToAddTo)
         {
-            return _tablePool.Execute(async table =>
-                                      {
-                                          await CloudTableHelpers.LoopResultSetAndMap(partitionKey
-                                                                                    , listToAddTo
-                                                                                    , table
-                                                                                    , _mapEntityFunc);
-                                      });
+            return CloudTableHelpers.LoopResultSetAndMap(partitionKey
+                                                       , listToAddTo
+                                                       , _tablePool.Table
+                                                       , _mapEntityFunc);
         }
 
         /// <summary>

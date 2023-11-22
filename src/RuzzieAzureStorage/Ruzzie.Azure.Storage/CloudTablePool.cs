@@ -5,25 +5,32 @@ using Ruzzie.Common.Threading;
 
 namespace Ruzzie.Azure.Storage
 {
+    [Obsolete]
     public interface ITablePool<TTable> : IDisposable
     {
         string              TableName { get; }
+
+        [Obsolete]
         IObjectPool<TTable> Pool      { get; }
 
+
         /// Executed the given function in the configured pool <see cref="IObjectPool{T}.ExecuteOnAvailableObject{TResult}"/>, for easy access.
+        [Obsolete]
         public TResult Execute<TResult>(Func<TTable, TResult> funcToExecute);
 
         /// Executed the given function async in the configured pool <see cref="IObjectPool{T}.ExecuteOnAvailableObject{TResult}"/>, for easy access.
+        [Obsolete]
         public Task<TResult> ExecuteAsync<TResult>(Func<TTable, Task<TResult>> funcToExecute);
     }
 
     /// <summary>
-    /// Pool of CloudTables. If the table does not exist, it will automatically be created.
+    /// If the table does not exist, it will automatically be created.
     /// </summary>
-    public class CloudTablePool : ITablePool<CloudTable>
+    public class CloudTablePool //: ITablePool<CloudTable>
     {
-        private readonly Task                         _createTableIfNotExistsTask;
-        private readonly SingleObjectPool<CloudTable> _pool;
+        private readonly Task _createTableIfNotExistsTask;
+
+        private readonly CloudTable _table;
 
         public string TableName { get; }
 
@@ -38,51 +45,47 @@ namespace Ruzzie.Azure.Storage
         public CloudTablePool(string tableName, CloudTableClient cloudTableClient)
         {
             TableName                   = tableName;
-            _pool                       = new SingleObjectPool<CloudTable>(GetNewTableReference());
-            _createTableIfNotExistsTask = Pool.ExecuteOnAvailableObject(table => table.CreateIfNotExistsAsync());
-            _createTableIfNotExistsTask.ContinueWith(task =>
-            {
-                _createTableIfNotExistsTask.Dispose();
-            });
+            _table                      = cloudTableClient.GetTableReference(tableName);
 
-            CloudTable GetNewTableReference()
-            {
-                return cloudTableClient.GetTableReference(tableName);
-            }
+            _createTableIfNotExistsTask = _table.CreateIfNotExistsAsync();
+
+            _createTableIfNotExistsTask.ContinueWith(_ => _createTableIfNotExistsTask.Dispose());
         }
 
         internal CloudTablePool(string tableName, CloudTable table)
         {
             TableName                   = tableName;
-            _pool                       = new SingleObjectPool<CloudTable>(table);
-            _createTableIfNotExistsTask = table.CreateIfNotExistsAsync().ContinueWith(t => t.Dispose());
+            _table                      = table;
+
+            _createTableIfNotExistsTask = table.CreateIfNotExistsAsync().ContinueWith(task => task.Dispose());
         }
 
         /// Executed the given function in the configured pool <see cref="IObjectPool{T}.ExecuteOnAvailableObject{TResult}"/>, for easy access.
-        public TResult Execute<TResult>(Func<CloudTable,TResult> funcToExecute)
+        [Obsolete("The Table can be accessed directly via the Table property")]
+        public TResult Execute<TResult>(Func<CloudTable, TResult> funcToExecute)
         {
-            return Pool.ExecuteOnAvailableObject(funcToExecute);
+            return funcToExecute(Table);
         }
 
         /// Executed the given function async in the configured pool <see cref="IObjectPool{T}.ExecuteOnAvailableObject{TResult}"/>, for easy access.
+        [Obsolete("The Table can be accessed directly via the Table property")]
         public async Task<TResult> ExecuteAsync<TResult>(Func<CloudTable, Task<TResult>> funcToExecute)
         {
-            return await Pool.ExecuteOnAvailableObject(funcToExecute);
+            return await funcToExecute(Table);
         }
 
-        public IObjectPool<CloudTable> Pool
+        public CloudTable Table
         {
             get
             {
                 _createTableIfNotExistsTask?.Wait();
-                return _pool;
+                return _table;
             }
         }
 
         public void Dispose()
         {
             _createTableIfNotExistsTask?.Dispose();
-            _pool?.Dispose();
         }
     }
 }
