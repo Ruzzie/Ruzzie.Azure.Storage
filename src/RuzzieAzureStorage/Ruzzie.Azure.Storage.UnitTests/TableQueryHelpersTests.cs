@@ -7,6 +7,7 @@ using FsCheck.Xunit;
 using Microsoft.Azure.Cosmos.Table;
 using Moq;
 using Xunit;
+#pragma warning disable xUnit1031
 // ReSharper disable InvokeAsExtensionMethod
 
 namespace Ruzzie.Azure.Storage.UnitTests

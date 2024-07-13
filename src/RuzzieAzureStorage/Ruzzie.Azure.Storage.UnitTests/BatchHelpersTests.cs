@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using Xunit;
 using FluentAssertions;
+#pragma warning disable xUnit1031
 
 namespace Ruzzie.Azure.Storage.UnitTests
 {
